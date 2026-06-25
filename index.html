@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -199,20 +198,18 @@ function nextQuestion(){
     // Every third question after score 30
     if(score >= 30 && questionCount % 3 === 0){
 
-        do{
-            currentNumber =
-                bonusQuestions[
-                    Math.floor(
-                        Math.random() * bonusQuestions.length
-                    )
-                ];
+        currentNumber = bonusQuestions[Math.floor(Math.random() * bonusQuestions.length)];
+        
+        // Handle bonus duplicates safely by shifting to the next item in the array
+        if (currentNumber === previousNumber && bonusQuestions.length > 1) {
+            let currentIndex = bonusQuestions.indexOf(currentNumber);
+            let nextIndex = (currentIndex + 1) % bonusQuestions.length;
+            currentNumber = bonusQuestions[nextIndex];
         }
-        while(currentNumber === previousNumber);
 
     } else {
 
-        // Weighting:
-        // 11-15 appear much more often
+        // Weighting: 11-15 appear much more often
         const pool = [
             ...hardPool,
             ...hardPool,
@@ -222,11 +219,24 @@ function nextQuestion(){
             ...remainingEasy
         ];
 
-        do{
-            currentNumber =
-                pool[Math.floor(Math.random() * pool.length)];
+        // Safety check if pool is completely empty
+        if (pool.length === 0) {
+            endGame();
+            return;
         }
-        while(currentNumber === previousNumber);
+
+        currentNumber = pool[Math.floor(Math.random() * pool.length)];
+
+        // DUPLICATE LOGIC: If it matches the previous number
+        if (currentNumber === previousNumber) {
+            let nextNumber = currentNumber + 1;
+            
+            if (nextNumber > 15) {
+                currentNumber = currentNumber - 1; // Give one less (e.g., 14)
+            } else {
+                currentNumber = nextNumber; // Give the next number up (e.g., 8)
+            }
+        }
     }
 
     previousNumber = currentNumber;
@@ -291,8 +301,7 @@ answerBox.addEventListener("keydown", function(e){
         score++;
 
         // Remove easy question permanently
-        const idx =
-            remainingEasy.indexOf(currentNumber);
+        const idx = remainingEasy.indexOf(currentNumber);
 
         if(idx !== -1){
             remainingEasy.splice(idx,1);
@@ -313,18 +322,13 @@ answerBox.addEventListener("keydown", function(e){
 
 function updateTimer(){
 
-    const mins =
-        Math.floor(secondsRemaining / 60);
-
-    const secs =
-        secondsRemaining % 60;
+    const mins = Math.floor(secondsRemaining / 60);
+    const secs = secondsRemaining % 60;
 
     document.getElementById("timer")
-        .textContent =
-        `${mins}:${secs.toString().padStart(2,"0")}`;
+        .textContent = `${mins}:${secs.toString().padStart(2,"0")}`;
 
     if(secondsRemaining <= 0){
-
         endGame();
         return;
     }
@@ -368,4 +372,3 @@ function endGame(){
 
 </body>
 </html>
-```
