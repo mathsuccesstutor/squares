@@ -1,9 +1,10 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Perfect Squares Practice (1–15)</title>
+<title>Perfect Squares Practice</title>
 
 <style>
 body{
@@ -12,6 +13,7 @@ body{
     background:#f5f7fb;
     margin:0;
     padding:40px;
+    transition: background-color 0.3s;
 }
 
 .container{
@@ -85,7 +87,7 @@ button{
 
 <div class="container">
 
-<h1>Perfect Squares 1–15</h1>
+<h1>Perfect Squares Practice</h1>
 
 <div id="startScreen">
     <p>Type the square and press Enter.</p>
@@ -95,6 +97,7 @@ button{
 
 <div id="gameScreen" class="hidden">
     <div id="timer">2:00</div>
+
     <div id="question"></div>
 
     <input id="answerBox" type="number" autocomplete="off">
@@ -108,22 +111,35 @@ button{
 
 <div id="endScreen" class="hidden">
     <h2>Time's Up!</h2>
+
     <p><strong>Final Score:</strong> <span id="finalScore"></span></p>
+
     <p><strong>Missed:</strong> <span id="missed"></span></p>
+
     <button onclick="location.reload()">Play Again</button>
 </div>
 
 </div>
 
 <script>
-const numbers = [];
-for(let i=1;i<=15;i++){
-    numbers.push(i);
-}
+
+// Questions 1-6 disappear once answered correctly
+let remainingEasy = [1,2,3,4,5,6];
+
+// Focus questions
+const mediumPool = [7,8,9,10];
+const hardPool = [11,12,13,14,15];
+
+// Introduced after score reaches 30
+const bonusQuestions = [20,25,30,40,50,100];
 
 let currentNumber;
+let previousNumber = null;
+
 let score = 0;
 let missed = 0;
+let questionCount = 0;
+
 let timer;
 let secondsRemaining = 120;
 
@@ -131,33 +147,32 @@ const questionEl = document.getElementById("question");
 const answerBox = document.getElementById("answerBox");
 const feedbackEl = document.getElementById("feedback");
 
-function shuffle(array){
-    for(let i=array.length-1;i>0;i--){
-        const j=Math.floor(Math.random()*(i+1));
-        [array[i],array[j]]=[array[j],array[i]];
-    }
-}
-
 function playCorrectSound(){
+
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.frequency.value = 700;
-    osc.type = "sine";
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.2);
+    gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        ctx.currentTime + 0.2
+    );
 
     osc.start();
-    osc.stop(ctx.currentTime+0.2);
+    osc.stop(ctx.currentTime + 0.2);
 }
 
 function playIncorrectSound(){
+
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
@@ -168,40 +183,101 @@ function playIncorrectSound(){
     gain.connect(ctx.destination);
 
     gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.3);
+    gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        ctx.currentTime + 0.3
+    );
 
     osc.start();
-    osc.stop(ctx.currentTime+0.3);
+    osc.stop(ctx.currentTime + 0.3);
 }
 
 function nextQuestion(){
-    currentNumber = numbers[Math.floor(Math.random()*numbers.length)];
 
-    questionEl.innerHTML = `${currentNumber}<sup>2</sup>`;
+    questionCount++;
+
+    // Every third question after score 30
+    if(score >= 30 && questionCount % 3 === 0){
+
+        do{
+            currentNumber =
+                bonusQuestions[
+                    Math.floor(
+                        Math.random() * bonusQuestions.length
+                    )
+                ];
+        }
+        while(currentNumber === previousNumber);
+
+    } else {
+
+        // Weighting:
+        // 11-15 appear much more often
+        const pool = [
+            ...hardPool,
+            ...hardPool,
+            ...hardPool,
+            ...hardPool,
+            ...mediumPool,
+            ...remainingEasy
+        ];
+
+        do{
+            currentNumber =
+                pool[Math.floor(Math.random() * pool.length)];
+        }
+        while(currentNumber === previousNumber);
+    }
+
+    previousNumber = currentNumber;
+
+    questionEl.innerHTML =
+        `${currentNumber}<sup>2</sup>`;
+
     answerBox.value = "";
     answerBox.focus();
 }
 
 function showFeedback(correct){
-    document.body.classList.remove("correct","incorrect");
+
+    document.body.classList.remove(
+        "correct",
+        "incorrect"
+    );
 
     if(correct){
+
         feedbackEl.textContent = "✓ Correct!";
         feedbackEl.style.color = "green";
+
         document.body.classList.add("correct");
+
         playCorrectSound();
-    }else{
-        feedbackEl.textContent = `✗ Wrong! ${currentNumber}² = ${currentNumber*currentNumber}`;
+
+    } else {
+
+        feedbackEl.textContent =
+            `✗ Wrong! ${currentNumber}² = ${currentNumber * currentNumber}`;
+
         feedbackEl.style.color = "red";
+
         document.body.classList.add("incorrect");
+
         playIncorrectSound();
     }
 
-    setTimeout(()=>{
+    setTimeout(() => {
+
         feedbackEl.textContent = "";
-        document.body.classList.remove("correct","incorrect");
+
+        document.body.classList.remove(
+            "correct",
+            "incorrect"
+        );
+
         nextQuestion();
-    },900);
+
+    }, 900);
 }
 
 answerBox.addEventListener("keydown", function(e){
@@ -210,24 +286,45 @@ answerBox.addEventListener("keydown", function(e){
 
     const answer = parseInt(answerBox.value);
 
-    if(answer === currentNumber*currentNumber){
+    if(answer === currentNumber * currentNumber){
+
         score++;
-        document.getElementById("score").textContent = score;
+
+        // Remove easy question permanently
+        const idx =
+            remainingEasy.indexOf(currentNumber);
+
+        if(idx !== -1){
+            remainingEasy.splice(idx,1);
+        }
+
+        document.getElementById("score")
+            .textContent = score;
+
         showFeedback(true);
-    }else{
+
+    } else {
+
         missed++;
+
         showFeedback(false);
     }
 });
 
 function updateTimer(){
-    const mins = Math.floor(secondsRemaining/60);
-    const secs = secondsRemaining%60;
 
-    document.getElementById("timer").textContent =
+    const mins =
+        Math.floor(secondsRemaining / 60);
+
+    const secs =
+        secondsRemaining % 60;
+
+    document.getElementById("timer")
+        .textContent =
         `${mins}:${secs.toString().padStart(2,"0")}`;
 
     if(secondsRemaining <= 0){
+
         endGame();
         return;
     }
@@ -237,10 +334,11 @@ function updateTimer(){
 
 function startGame(){
 
-    document.getElementById("startScreen").classList.add("hidden");
-    document.getElementById("gameScreen").classList.remove("hidden");
+    document.getElementById("startScreen")
+        .classList.add("hidden");
 
-    shuffle(numbers);
+    document.getElementById("gameScreen")
+        .classList.remove("hidden");
 
     nextQuestion();
 
@@ -253,13 +351,21 @@ function endGame(){
 
     clearInterval(timer);
 
-    document.getElementById("gameScreen").classList.add("hidden");
-    document.getElementById("endScreen").classList.remove("hidden");
+    document.getElementById("gameScreen")
+        .classList.add("hidden");
 
-    document.getElementById("finalScore").textContent = score;
-    document.getElementById("missed").textContent = missed;
+    document.getElementById("endScreen")
+        .classList.remove("hidden");
+
+    document.getElementById("finalScore")
+        .textContent = score;
+
+    document.getElementById("missed")
+        .textContent = missed;
 }
+
 </script>
 
 </body>
 </html>
+```
